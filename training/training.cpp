@@ -11,6 +11,9 @@
 using namespace cv;
 using namespace std;
 
+const char* catImage = "./assets/cat.jpg";
+const char* eyeImage = "./assets/eye.jpg";
+
 void example_1() {
 	// задаём высоту и ширину картинки
 	int height = 620;
@@ -41,17 +44,11 @@ void example_1() {
 }
 
 void example_2() {
-	// имя картинки задаётся первым параметром
-	const char* filename = "./assets/cat.jpg";
 	// получаем картинку
-	IplImage* image = cvLoadImage(filename, 1); // 0 - градации серого
+	IplImage* image = cvLoadImage(catImage, 1); // 0 - градации серого
 	// клонируем картинку 
 	IplImage* src = cvCloneImage(image);
-
 	assert(src != 0);
-
-	// окно для отображения картинки
-	cvNamedWindow("original", CV_WINDOW_AUTOSIZE);
 
 	// показываем картинку
 	cvShowImage("original", image);
@@ -70,27 +67,17 @@ void example_2() {
 	// освобождаем ресурсы
 	cvReleaseImage(&image);
 	cvReleaseImage(&src);
-	// удаляем окно
-	cvDestroyWindow("original");
 }
 
 void example_3() {
-	// имя картинки задаётся первым параметром
-	const char* filename = "./assets/cat.jpg";
 	// получаем картинку
-	IplImage* image = cvLoadImage(filename, 1);
+	IplImage* image = cvLoadImage(catImage, 1);
+	assert(image != 0);
 	// клонируем картинку 
 	IplImage* dst = cvCloneImage(image);
 
-	printf("[i] image: %s\n", filename);
-	assert(image != 0);
-
-	// окно для отображения картинки
-	cvNamedWindow("original", CV_WINDOW_AUTOSIZE);
-	cvNamedWindow("smooth", CV_WINDOW_AUTOSIZE);
-
 	// сглаживаем исходную картинку
-	cvSmooth(image, dst, CV_BLUR_NO_SCALE, 3, 3); // CV_BLUR_NO_SCALE
+	cvSmooth(image, dst, CV_BLUR, 3, 3); // CV_BLUR_NO_SCALE
 
 	// показываем картинку
 	cvShowImage("original", image);
@@ -102,29 +89,19 @@ void example_3() {
 	// освобождаем ресурсы
 	cvReleaseImage(&image);
 	cvReleaseImage(&dst);
-	// удаляем окно
-	cvDestroyWindow("original");
-	cvDestroyWindow("smooth");
 }
 
 void example_4() {
-	// имя картинки задаётся первым параметром
-	const char* filename = "./assets/cat.jpg";
 	// получаем картинку
-	IplImage* image = cvLoadImage(filename, 1);
-	IplImage* dst;
+	IplImage* image = cvLoadImage(catImage, 1);
 	assert(image != 0);
+	IplImage* dst;
 
 	// создание уменьшенной картинки
 	dst = cvCreateImage(cvSize(image->width / 3, image->height / 3), image->depth, image->nChannels);
 	cvResize(image, dst, 1); // вариации интерполяции
 
-	// окно для отображения картинки
-	cvNamedWindow("original", CV_WINDOW_AUTOSIZE);
 	cvShowImage("original", image);
-
-	// показываем результат
-	cvNamedWindow("Example#", CV_WINDOW_AUTOSIZE);
 	cvShowImage("Example#", dst);
 
 	// ждём нажатия клавиши
@@ -133,20 +110,12 @@ void example_4() {
 	// освобождаем ресурсы
 	cvReleaseImage(&image);
 	cvReleaseImage(&dst);
-
-	// удаляем окна
-	cvDestroyAllWindows();
 }
 
 void example_5() {
-	// имя картинки задаётся первым параметром
-	const char* filename = "./assets/cat.jpg";
 	// получаем картинку
-	IplImage* image = cvLoadImage(filename, 1);	
+	IplImage* image = cvLoadImage(catImage, 1);
 	assert(image != 0);
-
-	cvNamedWindow("origianl", CV_WINDOW_AUTOSIZE);
-	cvNamedWindow("ROI", CV_WINDOW_AUTOSIZE);
 
 	// задаём ROI
 	int x = 40;
@@ -170,11 +139,83 @@ void example_5() {
 
 	// освобождаем ресурсы
 	cvReleaseImage(&image);
-	cvDestroyAllWindows();
 }
 
+void matchTemplate() {
+	IplImage* src = cvLoadImage(catImage, 1), 
+		* templ = cvLoadImage(eyeImage, 1),
+		* ftmp[6];
+	assert(src != 0);
+	assert(templ != 0);
+
+	int patchx = templ->width;
+	int patchy = templ->height;
+	int iwidth = src->width - patchx + 1;
+	int iheight = src->height - patchy + 1;
+
+	for (int i = 0; i < 6; ++i) {
+		ftmp[i] = cvCreateImage(cvSize(iwidth, iheight), 32, 1);
+	}
+
+	for (int i = 0; i < 6; ++i) {
+		cvMatchTemplate(src, templ, ftmp[i], i);
+		double minval, maxval;
+		CvPoint minLoc, maxLoc;
+		cvMinMaxLoc(ftmp[i], &minval, &maxval, &minLoc, &maxLoc, 0);
+		cvNormalize(ftmp[i], ftmp[i], 1, 0, CV_MINMAX);
+		cvRectangle(src, maxLoc, cvPoint(maxLoc.x + templ->width - 1, maxLoc.y + templ->height - 1), CV_RGB(255,0,0),1,8);
+		cvRectangle(ftmp[i], maxLoc, cvPoint(maxLoc.x + templ->width - 1, maxLoc.y + templ->height - 1), CV_RGB(255, 0, 0), 1, 8);
+	}
+
+	cvShowImage("Template", templ);
+	cvShowImage("Image", src);
+	cvShowImage("0", ftmp[0]);
+	cvShowImage("1", ftmp[1]);
+	cvShowImage("2", ftmp[2]);
+	cvShowImage("3", ftmp[3]);
+	cvShowImage("4", ftmp[4]);
+	cvShowImage("5", ftmp[5]);
+
+	cvWaitKey(0);
+}
+
+void findTemp() {
+	IplImage* src = cvLoadImage(catImage, 1),
+		* templ = cvLoadImage(eyeImage, 1),
+		* ftmp[6];
+	assert(src != 0);
+	assert(templ != 0);
+
+	int patchx = templ->width;
+	int patchy = templ->height;
+
+	int iwidth = src->width - patchx + 1;
+	int iheight = src->height - patchy + 1;
+
+	cvShowImage("Template", templ);
+	cvShowImage("Image", src);
+
+	IplImage* res = cvCreateImage(cvSize(iwidth, iheight), 32, 1);
+	cvMatchTemplate(src, templ, res, 0);
+
+	double minval, maxval;
+	CvPoint minLoc, maxLoc;
+	cvMinMaxLoc(res, &minval, &maxval, &minLoc, &maxLoc, 0);
+	cvNormalize(res, res, 1, 0, CV_MINMAX);
+
+	cvRectangle(src, minLoc, cvPoint(minLoc.x + templ->width - 1, minLoc.y + templ->height - 1), CV_RGB(255, 0, 0), 1, 8);
+
+	cvShowImage("Match", src);
+	cvWaitKey(0);
+
+	cvReleaseImage(&src);
+	cvReleaseImage(&templ);
+	cvReleaseImage(&res);
+
+}
 
 int main(){
-	example_5();
+	findTemp();
+
     return 0;
 }
