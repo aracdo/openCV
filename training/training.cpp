@@ -1,221 +1,195 @@
-﻿#include <iostream>
+#include <iostream>
 #include <opencv2/opencv.hpp>
-#include <stdlib.h>
+#include <ViZDoom.h>
+#include <vector>
+#include <string>
+#include "windows.h"
 
-#define CV_BLUR_NO_SCALE 0
-#define CV_BLUR  1
-#define CV_GAUSSIAN  2
-#define CV_MEDIAN 3
-#define CV_BILATERAL 4
 
-using namespace cv;
-using namespace std;
 
-const char* catImage = "./assets/cat.jpg";
-const char* eyeImage = "./assets/eye.jpg";
+vizdoom::DoomGame* game = new vizdoom::DoomGame();
+auto screenBuff = cv::Mat(480, 640, CV_8UC3);
+unsigned int sleepTime = 10000;
+std::string path = "C:\\practice\\vizdoom";
 
-void example_1() {
-	// задаём высоту и ширину картинки
-	int height = 620;
-	int width = 440;
-	// задаём точку для вывода текста
-	CvPoint pt = cvPoint(height / 4, width / 2);
-	// Создаёи 8-битную, 3-канальную картинку
-	IplImage* hw = cvCreateImage(cvSize(height, width), 8, 3);
-	// заливаем картинку чёрным цветом
-	cvSet(hw, cvScalar(0, 0, 0));
-	// инициализация шрифта
-	CvFont font;
-	cvInitFont(&font, CV_FONT_HERSHEY_COMPLEX, 1.0, 1.0, 0, 1, CV_AA);
-	// используя шрифт выводим на картинку текст
-	cvPutText(hw, "Hello, OpenCV", pt, &font, CV_RGB(255, 255, 255));
-	// создаём окошко
-	cvNamedWindow("Hello World", CV_WINDOW_AUTOSIZE);
-	// показываем картинку в созданном окне
-	cvShowImage("Hello World", hw);
-	// ждём нажатия клавиши
-	char c = cvWaitKey(0);
-	if (c == 27) { // если нажали ESC 
-		std::cout << "ESC pressed" << std::endl;
+void RunTaskTest(int episodes) {
+
+	try
+	{
+		game->loadConfig(path + "\\scenarios\\basic.cfg");
+		game->init();
 	}
-	// освобождаем ресурсы
-	cvReleaseImage(&hw);
-	cvDestroyWindow("Hello World");
-}
-
-void example_2() {
-	// получаем картинку
-	IplImage* image = cvLoadImage(catImage, 1); // 0 - градации серого
-	// клонируем картинку 
-	IplImage* src = cvCloneImage(image);
-	assert(src != 0);
-
-	// показываем картинку
-	cvShowImage("original", image);
-
-	// выводим в консоль информацию о картинке
-	printf("[i] channels:  %d\n", image->nChannels);
-	printf("[i] pixel depth: %d bits\n", image->depth);
-	printf("[i] width:       %d pixels\n", image->width);
-	printf("[i] height:      %d pixels\n", image->height);
-	printf("[i] image size:  %d bytes\n", image->imageSize);
-	printf("[i] width step:  %d bytes\n", image->widthStep);
-
-	// ждём нажатия клавиши
-	cvWaitKey(0);
-
-	// освобождаем ресурсы
-	cvReleaseImage(&image);
-	cvReleaseImage(&src);
-}
-
-void example_3() {
-	// получаем картинку
-	IplImage* image = cvLoadImage(catImage, 1);
-	assert(image != 0);
-	// клонируем картинку 
-	IplImage* dst = cvCloneImage(image);
-
-	// сглаживаем исходную картинку
-	cvSmooth(image, dst, CV_BLUR, 3, 3); // CV_BLUR_NO_SCALE
-
-	// показываем картинку
-	cvShowImage("original", image);
-	cvShowImage("smooth", dst);
-
-	// ждём нажатия клавиши
-	cvWaitKey(0);
-
-	// освобождаем ресурсы
-	cvReleaseImage(&image);
-	cvReleaseImage(&dst);
-}
-
-void example_4() {
-	// получаем картинку
-	IplImage* image = cvLoadImage(catImage, 1);
-	assert(image != 0);
-	IplImage* dst;
-
-	// создание уменьшенной картинки
-	dst = cvCreateImage(cvSize(image->width / 3, image->height / 3), image->depth, image->nChannels);
-	cvResize(image, dst, 1); // вариации интерполяции
-
-	cvShowImage("original", image);
-	cvShowImage("Example#", dst);
-
-	// ждём нажатия клавиши
-	cvWaitKey(0);
-
-	// освобождаем ресурсы
-	cvReleaseImage(&image);
-	cvReleaseImage(&dst);
-}
-
-void example_5() {
-	// получаем картинку
-	IplImage* image = cvLoadImage(catImage, 1);
-	assert(image != 0);
-
-	// задаём ROI
-	int x = 40;
-	int y = 20;
-	int width = 100;
-	int height = 100;
-	// добавочная величина 
-	int add = 100;
-
-	cvShowImage("origianl", image);
-	// устанавливаем ROI
-	cvSetImageROI(image, cvRect(x, y, width, height));
-	cvAddS(image, cvScalar(add), image);
-	// сбрасываем ROI
-	cvResetImageROI(image);
-	// показываем изображение
-	cvShowImage("ROI", image);
-
-	// ждём нажатия клавиши
-	cvWaitKey(0);
-
-	// освобождаем ресурсы
-	cvReleaseImage(&image);
-}
-
-void matchTemplate() {
-	IplImage* src = cvLoadImage(catImage, 1), 
-		* templ = cvLoadImage(eyeImage, 1),
-		* ftmp[6];
-	assert(src != 0);
-	assert(templ != 0);
-
-	int patchx = templ->width;
-	int patchy = templ->height;
-	int iwidth = src->width - patchx + 1;
-	int iheight = src->height - patchy + 1;
-
-	for (int i = 0; i < 6; ++i) {
-		ftmp[i] = cvCreateImage(cvSize(iwidth, iheight), 32, 1);
+	catch (std::exception& err)
+	{
+		std::cout << err.what() << std::endl;
 	}
 
-	for (int i = 0; i < 6; ++i) {
-		cvMatchTemplate(src, templ, ftmp[i], i);
-		double minval, maxval;
-		CvPoint minLoc, maxLoc;
-		cvMinMaxLoc(ftmp[i], &minval, &maxval, &minLoc, &maxLoc, 0);
-		cvNormalize(ftmp[i], ftmp[i], 1, 0, CV_MINMAX);
-		cvRectangle(src, maxLoc, cvPoint(maxLoc.x + templ->width - 1, maxLoc.y + templ->height - 1), CV_RGB(255,0,0),1,8);
-		cvRectangle(ftmp[i], maxLoc, cvPoint(maxLoc.x + templ->width - 1, maxLoc.y + templ->height - 1), CV_RGB(255, 0, 0), 1, 8);
+	std::vector<double> actions[3];
+	actions[0] = { 1,0,1 };
+	actions[1] = { 0,1,1 };
+	actions[2] = { 0,0,1 };
+
+	for (auto i = 0; i < episodes; i++)
+	{
+		game->newEpisode();
+		std::cout << "episode " << i << std::endl;
+		while (!game->isEpisodeFinished()) {
+
+			auto gamestate = game->getState();
+			auto screenBuf = gamestate->screenBuffer;
+			for (int j = 0; j < 30; j++) {
+				game->makeAction(actions[0]);
+				Sleep(sleepTime);
+			}
+			for (int j = 0; j < 60; j++) {
+				game->makeAction(actions[1]);
+				Sleep(sleepTime);
+			}
+			
+		}
+	}
+}
+
+void RunTask1(int episodes) {
+
+
+	try
+	{
+		game->setWindowVisible(true);
+		game->setRenderWeapon(true);
+		game->loadConfig(path + "\\scenarios\\task1.cfg");
+		game->init();
+	}
+	catch (std::exception& err)
+	{
+		std::cout << err.what() << std::endl;
 	}
 
-	cvShowImage("Template", templ);
-	cvShowImage("Image", src);
-	cvShowImage("0", ftmp[0]);
-	cvShowImage("1", ftmp[1]);
-	cvShowImage("2", ftmp[2]);
-	cvShowImage("3", ftmp[3]);
-	cvShowImage("4", ftmp[4]);
-	cvShowImage("5", ftmp[5]);
+	std::vector<double> actions[3];
+	actions[0] = { 1,0,0 };
+	actions[1] = { 0,1,0 };
+	actions[2] = { 0,0,1 };
 
-	cvWaitKey(0);
+	int start, end, center;
+	start = -100;
+
+	auto greyscale = cv::Mat(480, 640, CV_8UC1);
+	for (auto i = 0; i < episodes; i++)
+	{
+		game->newEpisode();
+		//std::cout << "Episode #" << i + 1 << std::endl;
+
+		while (!game->isEpisodeFinished())
+		{
+			const auto& gamestate = game->getState();
+			std::memcpy(screenBuff.data, gamestate->screenBuffer->data(), gamestate->screenBuffer->size());
+
+
+			cv::extractChannel(screenBuff, greyscale, 2);
+			cv::threshold(greyscale, greyscale, 150, 255, cv::THRESH_BINARY);
+			//cv::GaussianBlur(greyscale, greyscale, cv::Size(21, 21), 0, 0);
+			cv::imshow("Output Window", greyscale);
+
+
+			//std::cout << reward << " ";
+
+
+			for (int x = 0; x < 640; x++) {
+				if (greyscale.at<unsigned char>(225, x) > 130) {
+					if (start < 0) start = x;
+					end = x;
+				}
+			}
+			std::cout << start + (end - start) / 2 << std::endl;
+			center = start + (end - start) / 2;
+			if (center < 269) double reward = game->makeAction({ 1,0,0 });
+			else if (center > 290) double reward = game->makeAction({ 0,1,0 });
+			else if (center >= 269 && center <= 290) double reward = game->makeAction({ 0,0,1 });
+
+			cv::waitKey(sleepTime);
+		}
+
+
+
+	}
 }
 
-void findTemp() {
-	IplImage* src = cvLoadImage(catImage, 1),
-		* templ = cvLoadImage(eyeImage, 1),
-		* ftmp[6];
-	assert(src != 0);
-	assert(templ != 0);
 
-	int patchx = templ->width;
-	int patchy = templ->height;
+void RunTask2(int episodes) {
 
-	int iwidth = src->width - patchx + 1;
-	int iheight = src->height - patchy + 1;
+	try
+	{
+		game->setWindowVisible(true);
+		game->setRenderWeapon(true);
+		game->loadConfig(path + "\\scenarios\\task2.cfg");
+		game->init();
+	}
+	catch (std::exception& err)
+	{
+		std::cout << err.what() << std::endl;
+	}
 
-	cvShowImage("Template", templ);
-	cvShowImage("Image", src);
 
-	IplImage* res = cvCreateImage(cvSize(iwidth, iheight), 32, 1);
-	cvMatchTemplate(src, templ, res, 0);
+	int start, end, center;
+	start = -100;
 
-	double minval, maxval;
-	CvPoint minLoc, maxLoc;
-	cvMinMaxLoc(res, &minval, &maxval, &minLoc, &maxLoc, 0);
-	cvNormalize(res, res, 1, 0, CV_MINMAX);
+	auto greyscale = cv::Mat(480, 640, CV_8UC1);
+	for (auto i = 0; i < episodes; i++)
+	{
+		game->newEpisode();
+		//std::cout << "Episode #" << i + 1 << std::endl;
 
-	cvRectangle(src, minLoc, cvPoint(minLoc.x + templ->width - 1, minLoc.y + templ->height - 1), CV_RGB(255, 0, 0), 1, 8);
+		while (!game->isEpisodeFinished())
+		{
+			const auto& gamestate = game->getState();
+			std::memcpy(screenBuff.data, gamestate->screenBuffer->data(), gamestate->screenBuffer->size());
 
-	cvShowImage("Match", src);
-	cvWaitKey(0);
 
-	cvReleaseImage(&src);
-	cvReleaseImage(&templ);
-	cvReleaseImage(&res);
+			cv::extractChannel(screenBuff, greyscale, 2);
+			cv::threshold(greyscale, greyscale, 150, 255, cv::THRESH_BINARY);
+			//cv::GaussianBlur(greyscale, greyscale, cv::Size(21, 21), 0, 0);
+			cv::imshow("Output Window", greyscale);
 
+
+			//std::cout << reward << " ";
+
+
+			for (int x = 0; x < 640; x++) {
+				if (greyscale.at<unsigned char>(225, x) > 130) {
+					if (start < 0) start = x;
+					end = x;
+				}
+			}
+			std::cout << start + (end - start) / 2 << std::endl;
+			center = start + (end - start) / 2;
+			
+			
+			double reward = game->makeAction({ 0,0,180,0 });
+
+			//if (center < 269) double reward = game->makeAction({ 1,0,0 });
+			//else if (center > 290) double reward = game->makeAction({ 0,1,0 });
+			//else if (center >= 269 && center <= 290) double reward = game->makeAction({ 0,0,1 });
+
+			cv::waitKey(sleepTime);
+		}
+
+
+
+	}
 }
 
-int main(){
-	findTemp();
+int main()
+{
+	game->setViZDoomPath(path + "\\vizdoom.exe");
+	game->setDoomGamePath(path + "\\DOOM2.wad");
+	game->setWindowVisible(true);
+	game->setRenderWeapon(true);
 
-    return 0;
+	auto episodes = 10;
+	RunTask2(episodes);
+	
+
+	game->close();
+	delete game;
 }
+
